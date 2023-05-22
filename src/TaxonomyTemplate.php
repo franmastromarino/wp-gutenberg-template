@@ -9,8 +9,9 @@ class TaxonomyTemplate extends AbstractTemplate
 {
     protected $taxonomy;
     protected $slug = 'taxonomy';
+    protected $title = 'Taxonomy';
 
-    public function __construct(PostTypeInterface $postType, string $filePath, string $taxonomy, string $template_title = '', string $template_desc = '')
+    public function __construct(PostTypeInterface $postType, string $filePath, string $taxonomy, string $templateTitle = '', string $template_desc = '')
     {
 
         if (!taxonomy_exists($taxonomy)) {
@@ -21,13 +22,23 @@ class TaxonomyTemplate extends AbstractTemplate
             throw new \Exception("The taxonomy {$taxonomy} is not associated with the post type {$postType->getPostType()}.");
         }
 
-        parent::__construct($postType, $filePath, $template_title, $template_desc);
+		$this->taxonomy = $taxonomy;
+
+        parent::__construct($postType, $filePath, $templateTitle, $template_desc);
     }
 
-    protected function generateSlug()
+    public function getTemplateSlug()
     {
-        $templateType = strtolower((new \ReflectionClass($this))->getShortName());
-        return "{$templateType}-{$this->postType->getPostType()}-{$this->taxonomy}";
+        return "{$this->slug}-{$this->taxonomy}";
+    }
+
+	public function getTemplateTitle()
+    {
+		if($this->templateTitle) {
+			return $this->templateTitle;
+		}
+
+        return "{$this->postType->getTitle()}: {$this->title}";
     }
 
     protected function registerTemplate()

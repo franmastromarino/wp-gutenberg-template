@@ -100,6 +100,6 @@ class TemplateTest extends TestCase
 
     public function testTaxonomyTemplateSlug()
     {
-        $this->assertEquals('taxonomy-test_post', $this->taxonomyTemplate->getTemplateSlug());
+        $this->assertEquals('taxonomy-test_taxonomy', $this->taxonomyTemplate->getTemplateSlug());
     }
 }

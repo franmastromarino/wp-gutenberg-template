@@ -25,7 +25,7 @@ class Custom implements PostTypeInterface
 
     public function getPostType(): string
     {
-        return $this->postType;
+        return $this->postType ?? '';
     }
 
     public function getTitle(): string

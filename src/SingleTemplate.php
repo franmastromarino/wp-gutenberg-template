@@ -7,6 +7,7 @@ use QuadLayers\Template\Abstracts\AbstractTemplate;
 class SingleTemplate extends AbstractTemplate
 {
     protected $slug = 'single';
+    protected $title = 'Single';
 
     protected function registerTemplate()
     {

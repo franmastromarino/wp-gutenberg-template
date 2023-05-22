@@ -2,44 +2,90 @@
 
 namespace QuadLayers\Template;
 
-use QuadLayers\Template\PostType\Custom;
-
 class TemplateFactory
 {
-    private Custom $postType;
-    private string $templateParent;
-    private string $templatePath;
+    private string $templatePostType;
+    private string $theme = 'QuadLayers';
+    private string $templateFilePath;
 
-    public function setTemplateParent(string $templateParent): self
+    public function setTheme(string $theme): self
     {
-        $this->templateParent = $templateParent;
+        $this->theme = $theme;
         return $this;
     }
 
-    public function setTemplatePostType(string $postType): self
+    public function setPostType(string $templatePostType): self
     {
-        $this->postType = new Custom($postType);
+        $this->templatePostType = $templatePostType;
         return $this;
     }
 
-    public function setTemplatePath(string $templatePath): self
+    public function setFilePath(string $templateFilePath): self
     {
-        $this->templatePath = $templatePath;
+        $this->templateFilePath = $templateFilePath;
         return $this;
     }
 
-    public function createSingle(): SingleTemplate
+    public function createSingle(): TemplateProperties
     {
-        return new SingleTemplate($this->postType, $this->templatePath);
+
+        $properties = new TemplateProperties(
+			$this->theme,
+            'single',
+            'Single',
+            $this->templatePostType,
+            $this->templateFilePath
+        );
+
+        new SingleTemplate($properties);
+
+        return $properties;
     }
 
-    public function createArchive(): ArchiveTemplate
+    public function createArchive(): TemplateProperties
     {
-        return new ArchiveTemplate($this->postType, $this->templatePath);
+
+        $properties = new TemplateProperties(
+			$this->theme,
+            'archive',
+            'Archive',
+            $this->templatePostType,
+            $this->templateFilePath
+        );
+
+        if (!$properties->templatePostType->hasArchive()) {
+            throw new \Exception("The post type {$properties->templatePostType->getPostType()} does not have an archive.");
+        }
+
+        new ArchiveTemplate($properties);
+
+        return $properties;
     }
 
-    public function createTaxonomy(string $taxonomy): TaxonomyTemplate
+    public function createTaxonomy(string $taxonomy): TemplateProperties
     {
-        return new TaxonomyTemplate($this->postType, $this->templatePath, $taxonomy);
+
+        $properties = new TemplateProperties(
+			$this->theme,
+            'taxonomy',
+            'Taxonomy',
+            $this->templatePostType,
+            $this->templateFilePath
+        );
+
+
+        if (!taxonomy_exists($taxonomy)) {
+            throw new \Exception("The taxonomy {$taxonomy} does not exist.");
+        }
+
+        if (!is_object_in_taxonomy($properties->templatePostType->getPostType(), $taxonomy)) {
+            throw new \Exception("The taxonomy {$taxonomy} is not associated with the post type {$properties->templatePostType->getPostType()}.");
+        }
+
+        $properties->templateSlug =  "{$properties->slug}-{$taxonomy}";
+
+        new TaxonomyTemplate($properties, $taxonomy);
+
+        return $properties;
     }
 }

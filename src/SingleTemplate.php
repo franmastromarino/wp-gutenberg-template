@@ -2,9 +2,9 @@
 
 namespace QuadLayers\Template;
 
-use QuadLayers\Template\Abstracts\AbstractTemplate;
+use QuadLayers\Template\Abstracts\BuildTemplate;
 
-class SingleTemplate extends AbstractTemplate
+class SingleTemplate extends BuildTemplate
 {
     protected $slug = 'single';
     protected $title = 'Single';

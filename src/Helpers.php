@@ -4,6 +4,12 @@ namespace QuadLayers\Template;
 
 class Helpers
 {
+    public static function titleToSlug($title)
+    {
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+        return $slug;
+    }
+
     public static function getTemplateFromQuery($slug, $postStatus)
     {
         $wp_query_args = array(

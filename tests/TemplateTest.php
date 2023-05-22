@@ -3,9 +3,6 @@
 namespace QuadLayers\Template\Tests;
 
 use PHPUnit\Framework\TestCase;
-use QuadLayers\Template\SingleTemplate;
-use QuadLayers\Template\ArchiveTemplate;
-use QuadLayers\Template\TaxonomyTemplate;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use QuadLayers\Template\TemplateFactory;
@@ -73,16 +70,16 @@ class TemplateTest extends TestCase
 
     public function testSingleTemplateSlug()
     {
-        $this->assertEquals('single-the_post', $this->factory->createSingle()->getTemplateSlug());
+        $this->assertEquals('single-the_post', $this->factory->createSingle()->templateSlug);
     }
 
     public function testArchiveTemplateSlug()
     {
-        $this->assertEquals('archive-the_post', $this->factory->createArchive()->getTemplateSlug());
+        $this->assertEquals('archive-the_post', $this->factory->createArchive()->templateSlug);
     }
 
     public function testTaxonomyTemplateSlug()
     {
-        $this->assertEquals('taxonomy-the_post_tag', $this->factory->createTaxonomy('the_post_tag')->getTemplateSlug());
+        $this->assertEquals('taxonomy-the_post_tag', $this->factory->createTaxonomy('the_post_tag')->templateSlug);
     }
 }

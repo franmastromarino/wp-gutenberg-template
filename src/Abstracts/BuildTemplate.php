@@ -3,45 +3,30 @@
 namespace QuadLayers\Template\Abstracts;
 
 use InvalidArgumentException;
-use QuadLayers\Template\Interfaces\PostTypeInterface;
 use QuadLayers\Template\Helpers;
+use QuadLayers\Template\TemplateProperties;
 
-abstract class AbstractTemplate
+abstract class BuildTemplate
 {
-    private $templatePostType  = 'wp_template';
-    private $templateTheme = 'test';
-    protected $slug;
-    protected $title;
-    protected $postType;
-    protected $templateSlug;
-    protected $templateTitle;
-    protected $templateDesc;
-    protected $templateFilePath;
-    protected $templateId;
+	protected $properties;
 
-    public function __construct(PostTypeInterface $postType, string $filePath, string $templateTitle = '', string $templateDesc = '')
+    public function __construct(TemplateProperties $properties)
     {
 
-        if (!$postType->getPostType()) {
+		$this->properties = $properties;
+
+        if (!$properties->templatePostType->getPostType()) {
             throw new InvalidArgumentException('Post type not found.');
             return;
         }
 
-        $this->postType = $postType;
-        $this->templateSlug = $this->getTemplateSlug();
-        $this->templateId = $this->getTemplateId();
-
-        if (is_dir($filePath)) {
-            $filePath = trailingslashit($filePath) . $this->templateSlug . '.html';
+        if (is_dir($this->properties->templateFilePath)) {
+             $this->properties->templateFilePath= trailingslashit( $this->properties->templateFilePath) . $this->properties->templateSlug . '.html';
         }
 
-        if (!file_exists($filePath)) {
-            throw new InvalidArgumentException('Template file not found: ' . $filePath);
+        if (!file_exists( $this->properties->templateFilePath)) {
+            throw new InvalidArgumentException('Template file not found: ' .  $this->properties->templateFilePath);
         }
-
-        $this->templateFilePath = $filePath;
-        $this->templateTitle = $templateTitle ? $templateTitle : "{$postType->getTitle()}: {$this->title}";
-        $this->templateDesc = $templateDesc ? $templateDesc : "{$postType->getDescription()}: {$this->title}";
 
         add_filter('get_block_templates', array( $this, 'getBlockTemplates' ), 10, 3);
         add_filter('pre_get_block_template', array( $this, 'preGetBlockTemplate' ), 10, 3);
@@ -51,30 +36,20 @@ abstract class AbstractTemplate
         $this->registerTemplate();
     }
 
-    public function getTemplateSlug()
-    {
-        return "{$this->slug}-{$this->postType->getPostType()}";
-    }
-
-    public function getTemplateId()
-    {
-        return $this->templateTheme . '//' . $this->templateSlug;
-    }
-
     abstract protected function registerTemplate();
 
     public function updateTemplateHierarchy($templates)
     {
-        if (get_post_type() === $this->postType->getPostType()) {
-            return array( $this->templateSlug );
+        if (get_post_type() === $this->properties->templatePostType->getPostType()) {
+            return array( $this->properties->templateSlug );
         }
         return $templates;
     }
 
     public function preGetBlockTemplate($template, $id, $templatePostType)
     {
-        if ($id == $this->templateId) {
-            $template = Helpers::getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish', 'trash' ));
+        if ($id == $this->properties->templateId) {
+            $template = Helpers::getTemplateFromQuery($this->properties->templateSlug, array( 'auto-draft', 'draft', 'publish', 'trash' ));
 
             if ($template) {
                 return $template;
@@ -89,8 +64,8 @@ abstract class AbstractTemplate
 
     public function preGetBlockTemplates($template, $query, $templatePostType)
     {
-        if (isset($query['slug__in']) && in_array($this->templateSlug, $query['slug__in'])) {
-            $template = Helpers::getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
+        if (isset($query['slug__in']) && in_array($this->properties->templateSlug, $query['slug__in'])) {
+            $template = Helpers::getTemplateFromQuery($this->properties->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
 
             if ($template) {
                 return array( $template );
@@ -109,10 +84,10 @@ abstract class AbstractTemplate
         if (count($templateNameParts) < 2) {
             return $template;
         }
-        list($templateId, $templateSlug) = $templateNameParts;
+        list($theme, $templateSlug) = $templateNameParts;
         if (
-            $this->templateTheme == $templateId &&
-            $this->templateSlug == $templateSlug
+            $this->properties->theme == $theme &&
+            $this->properties->templateSlug == $templateSlug
         ) {
             $template = $this->getTemplate();
         }
@@ -122,20 +97,20 @@ abstract class AbstractTemplate
     protected function getTemplate()
     {
 
-        $templateContent = file_get_contents($this->templateFilePath);
+        $templateContent = file_get_contents( $this->properties->templateFilePath);
 
         $template                 = new \WP_Block_Template();
-        $template->id             = $this->templateId;
-        $template->theme          = $this->templateTheme;
+        $template->id             = $this->properties->templateId;
+        $template->theme          = $this->properties->theme;
         $template->content        = Helpers::injectThemeAttributeInContent($templateContent);
         $template->source         = 'plugin';
         $template->author         = null;
         $template->origin         = 'plugin';
         $template->area           = 'uncategorized';
-        $template->slug           = $this->templateSlug;
-        $template->type           = $this->templatePostType;
-        $template->title          = $this->templateTitle;
-        $template->description    = $this->templateDesc;
+        $template->slug           = $this->properties->templateSlug;
+        $template->type           = 'wp_template';
+        $template->title          = $this->properties->templateTitle;
+        $template->description    = $this->properties->templateDesc;
         $template->status         = 'publish';
         $template->has_theme_file = true;
         $template->is_custom      = false; // Templates loaded from the filesystem aren't custom, ones that have been edited and loaded from the DB are.
@@ -156,14 +131,14 @@ abstract class AbstractTemplate
             array_filter(
                 $queryResult,
                 function ($queryResultTemplate) {
-                    return $queryResultTemplate->slug === $this->templateSlug;
+                    return $queryResultTemplate->slug === $this->properties->templateSlug;
                 }
             )
         ) {
             return $queryResult;
         }
 
-        $template = Helpers::getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
+        $template = Helpers::getTemplateFromQuery($this->properties->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
 
         if (! $template) {
             $template = $this->getTemplate();

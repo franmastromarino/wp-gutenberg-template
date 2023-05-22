@@ -22,7 +22,7 @@ class TaxonomyTemplate extends AbstractTemplate
             throw new \Exception("The taxonomy {$taxonomy} is not associated with the post type {$postType->getPostType()}.");
         }
 
-		$this->taxonomy = $taxonomy;
+        $this->taxonomy = $taxonomy;
 
         parent::__construct($postType, $filePath, $templateTitle, $template_desc);
     }
@@ -32,13 +32,20 @@ class TaxonomyTemplate extends AbstractTemplate
         return "{$this->slug}-{$this->taxonomy}";
     }
 
-	public function getTemplateTitle()
+    public function getTemplateTitle()
     {
-		if($this->templateTitle) {
-			return $this->templateTitle;
-		}
+        if ($this->templateTitle) {
+            return $this->templateTitle;
+        }
 
         return "{$this->postType->getTitle()}: {$this->title}";
+    }
+
+    public function setTaxonomy(string $taxonomy): self
+    {
+        $this->taxonomy = $taxonomy;
+
+        return $this;
     }
 
     protected function registerTemplate()

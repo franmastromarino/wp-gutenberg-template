@@ -6,16 +6,13 @@ use PHPUnit\Framework\TestCase;
 use QuadLayers\Template\SingleTemplate;
 use QuadLayers\Template\ArchiveTemplate;
 use QuadLayers\Template\TaxonomyTemplate;
-use QuadLayers\Template\PostType\Custom;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use QuadLayers\Template\TemplateFactory;
 
 class TemplateTest extends TestCase
 {
-    private $postType;
-    private $singleTemplate;
-    private $archiveTemplate;
-    private $taxonomyTemplate;
+    private $factory;
 
     protected function setUp(): void
     {
@@ -26,12 +23,13 @@ class TemplateTest extends TestCase
         $this->mockWordPressFunctions();
 
         // Instantiate PostType
-        $this->postType = new Custom('test_post');
+        $this->factory = (new TemplateFactory())
+            ->setTemplatePostType('the_post')
+            ->setTemplatePath(__DIR__ . '/templates');
 
-        // Inject the PostType instance into the templates
-        $this->singleTemplate = new SingleTemplate($this->postType, __DIR__ . '/templates');
-        $this->archiveTemplate = new ArchiveTemplate($this->postType, __DIR__ . '/templates');
-        $this->taxonomyTemplate = new TaxonomyTemplate($this->postType, __DIR__ . '/templates', 'test_taxonomy');
+        $this->factory->createSingle();
+        $this->factory->createArchive();
+        $this->factory->createTaxonomy('the_post_tag');
     }
 
     protected function tearDown(): void
@@ -45,8 +43,8 @@ class TemplateTest extends TestCase
         // Mocking get_post_type_object
         Functions\when('get_post_type_object')->justReturn((object) [
             'labels' => (object) ['name' => 'Test Posts'],
-            'name' => 'test_post',
-            'description' => 'Test Post',
+            'name' => 'The Post',
+            'description' => 'The post description.',
             'public' => true,
             'has_archive' => true,
             'publicly_queryable' => true,
@@ -73,33 +71,18 @@ class TemplateTest extends TestCase
         Functions\when('is_object_in_taxonomy')->justReturn(true);
     }
 
-    public function testSingleTemplateCreation()
-    {
-        $this->assertInstanceOf(SingleTemplate::class, $this->singleTemplate);
-    }
-
-    public function testArchiveTemplateCreation()
-    {
-        $this->assertInstanceOf(ArchiveTemplate::class, $this->archiveTemplate);
-    }
-
-    public function testTaxonomyTemplateCreation()
-    {
-        $this->assertInstanceOf(TaxonomyTemplate::class, $this->taxonomyTemplate);
-    }
-
     public function testSingleTemplateSlug()
     {
-        $this->assertEquals('single-test_post', $this->singleTemplate->getTemplateSlug());
+        $this->assertEquals('single-the_post', $this->factory->createSingle()->getTemplateSlug());
     }
 
     public function testArchiveTemplateSlug()
     {
-        $this->assertEquals('archive-test_post', $this->archiveTemplate->getTemplateSlug());
+        $this->assertEquals('archive-the_post', $this->factory->createArchive()->getTemplateSlug());
     }
 
     public function testTaxonomyTemplateSlug()
     {
-        $this->assertEquals('taxonomy-test_taxonomy', $this->taxonomyTemplate->getTemplateSlug());
+        $this->assertEquals('taxonomy-the_post_tag', $this->factory->createTaxonomy('the_post_tag')->getTemplateSlug());
     }
 }

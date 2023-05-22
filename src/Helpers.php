@@ -2,7 +2,81 @@
 
 namespace QuadLayers\Template;
 
-class Helpers {
+class Helpers
+{
+    public static function getTemplateFromQuery($slug, $postStatus)
+    {
+        $wp_query_args = array(
+            'post_name__in'  => array( $slug ),
+            'post_type'      => 'wp_template',
+            'post_status'    => $postStatus,
+            'posts_per_page' => 1,
+            'no_found_rows'  => true,
+            // 'tax_query'      => array(
+            // array(
+            // 'taxonomy' => 'wp_theme',
+            // 'field'    => 'name',
+            // 'terms'    => $theme,
+            // ),
+            // ),
+        );
+
+        $template_query = new \WP_Query($wp_query_args);
+        $posts          = $template_query->posts;
+
+        if (count($posts) > 0) {
+            $template                 = _build_block_template_result_from_post($posts[0]);
+            $template->origin         = 'plugin';
+            $template->is_custom      = false;
+            $template->post_types     = array();
+            $template->area           = 'uncategorized';
+            $template->has_theme_file = true;
+            $template->author         = null;
+            if (! is_wp_error($template)) {
+                return $template;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Parses wp_template content and injects the current theme's
+     * stylesheet as a theme attribute into each wp_template_part
+     *
+     * @param string $templateContent serialized wp_template content.
+     *
+     * @return string Updated wp_template content.
+     */
+    public static function injectThemeAttributeInContent($templateContent)
+    {
+        $hasUpdatedContent = false;
+        $newContent         = '';
+        $templateBlocks     = parse_blocks($templateContent);
+
+        $blocks = Helpers::flattenBlocks($templateBlocks);
+        foreach ($blocks as &$block) {
+            /**
+             * Make sure to remove the "theme":"xxxx" attribute from the templates
+             */
+            if (
+                'core/template-part' === $block['blockName'] &&
+                ! isset($block['attrs']['theme'])
+            ) {
+                $block['attrs']['theme'] = wp_get_theme()->get_stylesheet();
+                $hasUpdatedContent     = true;
+            }
+        }
+
+        if ($hasUpdatedContent) {
+            foreach ($templateBlocks as &$block) {
+                $newContent .= serialize_block($block);
+            }
+
+            return $newContent;
+        }
+
+        return $templateContent;
+    }
 
     /**
      * Checks to see if they are using a compatible version of WP, or if not they have a compatible version of the Gutenberg plugin installed.

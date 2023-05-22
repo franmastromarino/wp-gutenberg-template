@@ -22,18 +22,18 @@ abstract class AbstractTemplate
     public function __construct(PostTypeInterface $postType, string $filePath, string $templateTitle = '', string $templateDesc = '')
     {
 
-		if(!$postType->getPostType()) {
-			throw new InvalidArgumentException('Post type not found.');
-			return;
-		}
+        if (!$postType->getPostType()) {
+            throw new InvalidArgumentException('Post type not found.');
+            return;
+        }
 
         $this->postType = $postType;
         $this->templateSlug = $this->getTemplateSlug();
         $this->templateId = $this->getTemplateId();
 
-		if (is_dir($filePath)) {
-			$filePath = trailingslashit($filePath) . $this->templateSlug .'.html';
-		}
+        if (is_dir($filePath)) {
+            $filePath = trailingslashit($filePath) . $this->templateSlug . '.html';
+        }
 
         if (!file_exists($filePath)) {
             throw new InvalidArgumentException('Template file not found: ' . $filePath);
@@ -56,14 +56,14 @@ abstract class AbstractTemplate
         return "{$this->slug}-{$this->postType->getPostType()}";
     }
 
-	public function getTemplateId()
-	{
-		return $this->templateTheme . '//' . $this->templateSlug;
-	}
+    public function getTemplateId()
+    {
+        return $this->templateTheme . '//' . $this->templateSlug;
+    }
 
     abstract protected function registerTemplate();
 
-    protected function updateTemplateHierarchy($templates)
+    public function updateTemplateHierarchy($templates)
     {
         if (get_post_type() === $this->postType->getPostType()) {
             return array( $this->templateSlug );
@@ -71,45 +71,10 @@ abstract class AbstractTemplate
         return $templates;
     }
 
-    public function getTemplateFromQuery($slug, $postStatus)
-    {
-        $wp_query_args = array(
-            'post_name__in'  => array( $slug ),
-            'post_type'      => $this->templatePostType,
-            'post_status'    => $postStatus,
-            'posts_per_page' => 1,
-            'no_found_rows'  => true,
-            // 'tax_query'      => array(
-            // array(
-            // 'taxonomy' => 'wp_theme',
-            // 'field'    => 'name',
-            // 'terms'    => $theme,
-            // ),
-            // ),
-        );
-
-        $template_query = new \WP_Query($wp_query_args);
-        $posts          = $template_query->posts;
-
-        if (count($posts) > 0) {
-            $template                 = _build_block_template_result_from_post($posts[0]);
-            $template->origin         = 'plugin';
-            $template->is_custom      = false;
-            $template->post_types     = array();
-            $template->area           = 'uncategorized';
-            $template->has_theme_file = true;
-            $template->author         = null;
-            if (! is_wp_error($template)) {
-                return $template;
-            }
-        }
-        return false;
-    }
-
     public function preGetBlockTemplate($template, $id, $templatePostType)
     {
         if ($id == $this->templateId) {
-            $template = $this->getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish', 'trash' ));
+            $template = Helpers::getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish', 'trash' ));
 
             if ($template) {
                 return $template;
@@ -125,7 +90,7 @@ abstract class AbstractTemplate
     public function preGetBlockTemplates($template, $query, $templatePostType)
     {
         if (isset($query['slug__in']) && in_array($this->templateSlug, $query['slug__in'])) {
-            $template = $this->getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
+            $template = Helpers::getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
 
             if ($template) {
                 return array( $template );
@@ -154,45 +119,6 @@ abstract class AbstractTemplate
         return $template;
     }
 
-    /**
-     * Parses wp_template content and injects the current theme's
-     * stylesheet as a theme attribute into each wp_template_part
-     *
-     * @param string $templateContent serialized wp_template content.
-     *
-     * @return string Updated wp_template content.
-     */
-    public function injectThemeAttributeInContent($templateContent)
-    {
-        $hasUpdatedContent = false;
-        $newContent         = '';
-        $templateBlocks     = parse_blocks($templateContent);
-
-        $blocks = Helpers::flattenBlocks($templateBlocks);
-        foreach ($blocks as &$block) {
-            /**
-             * Make sure to remove the "theme":"xxxx" attribute from the templates
-             */
-            if (
-                'core/template-part' === $block['blockName'] &&
-                ! isset($block['attrs']['theme'])
-            ) {
-                $block['attrs']['theme'] = wp_get_theme()->get_stylesheet();
-                $hasUpdatedContent     = true;
-            }
-        }
-
-        if ($hasUpdatedContent) {
-            foreach ($templateBlocks as &$block) {
-                $newContent .= serialize_block($block);
-            }
-
-            return $newContent;
-        }
-
-        return $templateContent;
-    }
-
     protected function getTemplate()
     {
 
@@ -201,7 +127,7 @@ abstract class AbstractTemplate
         $template                 = new \WP_Block_Template();
         $template->id             = $this->templateId;
         $template->theme          = $this->templateTheme;
-        $template->content        = $this->injectThemeAttributeInContent($templateContent);
+        $template->content        = Helpers::injectThemeAttributeInContent($templateContent);
         $template->source         = 'plugin';
         $template->author         = null;
         $template->origin         = 'plugin';
@@ -237,7 +163,7 @@ abstract class AbstractTemplate
             return $queryResult;
         }
 
-        $template = $this->getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
+        $template = Helpers::getTemplateFromQuery($this->templateSlug, array( 'auto-draft', 'draft', 'publish' ));
 
         if (! $template) {
             $template = $this->getTemplate();
